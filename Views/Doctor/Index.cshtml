@@ -1,0 +1,156 @@
+@model IEnumerable<ElectronicMedRecord.Models.Doctor>
+@{
+    ViewData["Title"] = "Our Doctors";
+    var role = Context.Session.GetString("Role");
+    var isAdmin = role == "Admin";
+}
+
+<div class="container-fluid px-4 py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <h1 class="page-title mb-1">Our Doctors</h1>
+            <p class="page-subtitle mb-0">Browse our qualified healthcare professionals</p>
+        </div>
+        @if (isAdmin)
+        {
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-user-md me-1"></i> Add Doctor
+            </a>
+        }
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4 col-lg-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search doctors...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="specializationFilter">
+                        <option value="">All Specializations</option>
+                        @{
+                            var specializations = Model?.Select(d => d.Specialization).Distinct().OrderBy(s => s).ToList() ?? new List<string>();
+                        }
+                        @foreach (var spec in specializations)
+                        {
+                            <option value="@spec">@spec</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctors Grid -->
+    @if (Model != null && Model.Any())
+    {
+        <div class="row g-3" id="doctorsGrid">
+            @foreach (var doctor in Model)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6 doctor-card" data-specialization="@doctor.Specialization">
+                    <div class="card h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="avatar avatar-lg mx-auto mb-3" style="width: 64px; height: 64px; font-size: 1.25rem; background: #D1FAE5; color: #059669;">
+                                @doctor.FirstName?.Substring(0, 1)@doctor.LastName?.Substring(0, 1)
+                            </div>
+                            <h5 class="card-title mb-1 fw-semibold">Dr. @doctor.FirstName @doctor.LastName</h5>
+                            <span class="badge bg-info mb-3">@doctor.Specialization</span>
+                            
+                            <div class="text-start border-top pt-3">
+                                <p class="mb-2 small">
+                                    <i class="fas fa-envelope text-muted me-2" style="width: 16px;"></i>
+                                    <span class="text-muted">@doctor.Email</span>
+                                </p>
+                                <p class="mb-2 small">
+                                    <i class="fas fa-phone text-muted me-2" style="width: 16px;"></i>
+                                    <span class="text-muted">@(doctor.Phone ?? "—")</span>
+                                </p>
+                                <p class="mb-0 small">
+                                    <i class="fas fa-dollar-sign text-muted me-2" style="width: 16px;"></i>
+                                    <span class="fw-semibold">$@doctor.ConsultationFee.ToString("F2")</span>
+                                    <span class="text-muted">/ visit</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top p-3">
+                            <div class="d-grid gap-2">
+                                @if (role == "Patient")
+                                {
+                                    <a asp-controller="Appointment" asp-action="Create" asp-route-doctorId="@doctor.Id" 
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-calendar-plus me-1"></i> Book Appointment
+                                    </a>
+                                }
+                                <a asp-action="Details" asp-route-id="@doctor.Id" class="btn btn-ghost btn-sm">
+                                    <i class="fas fa-eye me-1"></i> View Profile
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="text-center text-muted mt-4">
+            <span id="doctorCount" class="small">Showing @Model.Count() doctors</span>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state py-5">
+                    <i class="fas fa-user-md"></i>
+                    <h5>No Doctors Found</h5>
+                    <p>There are no registered doctors in the system yet.</p>
+                    @if (isAdmin)
+                    {
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="fas fa-user-md me-1"></i> Add First Doctor
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const specializationFilter = document.getElementById('specializationFilter');
+            const doctorCards = document.querySelectorAll('.doctor-card');
+
+            function filterDoctors() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const specialization = specializationFilter.value;
+                let visibleCount = 0;
+
+                doctorCards.forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    const cardSpecialization = card.dataset.specialization;
+
+                    const matchesSearch = text.includes(searchTerm);
+                    const matchesSpecialization = !specialization || cardSpecialization === specialization;
+
+                    if (matchesSearch && matchesSpecialization) {
+                        card.style.display = '';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('doctorCount').textContent = `Showing ${visibleCount} doctors`;
+            }
+
+            searchInput.addEventListener('input', filterDoctors);
+            specializationFilter.addEventListener('change', filterDoctors);
+        });
+    </script>
+}

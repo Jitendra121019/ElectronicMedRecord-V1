@@ -1,0 +1,105 @@
+@model IEnumerable<ElectronicMedRecord.Models.Appointment>
+
+@if (Model != null && Model.Any())
+{
+    <div class="row g-3">
+        @foreach (var appointment in Model.OrderByDescending(a => a.AppointmentDate))
+        {
+            var statusClass = appointment.Status switch
+            {
+                "Scheduled" => "status-scheduled",
+                "Completed" => "status-completed",
+                "Cancelled" => "status-cancelled",
+                _ => "bg-secondary"
+            };
+            var isPast = appointment.AppointmentDate < DateTime.Now && appointment.Status == "Scheduled";
+            
+            <div class="col-lg-6">
+                <div class="card h-100 @(isPast ? "border-warning" : "")">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar me-3" style="background: #D1FAE5; color: #059669;">
+                                    @appointment.Doctor?.FirstName?.Substring(0, 1)@appointment.Doctor?.LastName?.Substring(0, 1)
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-semibold">Dr. @appointment.Doctor?.FirstName @appointment.Doctor?.LastName</h6>
+                                    <span class="badge bg-info small">@appointment.Doctor?.Specialization</span>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1">
+                                @if (isPast)
+                                {
+                                    <span class="badge bg-warning">Past Due</span>
+                                }
+                                <span class="badge @statusClass">@appointment.Status</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="info-card" style="background: var(--bg-secondary); padding: 0.75rem;">
+                                    <div class="info-icon" style="background: #E0E7FF; color: #4F46E5; width: 32px; height: 32px; font-size: 0.75rem;">
+                                        <i class="fas fa-calendar"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.7rem;">Date</small>
+                                        <span class="fw-semibold small">@appointment.AppointmentDate.ToString("MMM dd, yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="info-card" style="background: var(--bg-secondary); padding: 0.75rem;">
+                                    <div class="info-icon" style="background: #CFFAFE; color: #0891B2; width: 32px; height: 32px; font-size: 0.75rem;">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.7rem;">Time</small>
+                                        <span class="fw-semibold small">@appointment.AppointmentDate.ToString("hh:mm tt")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(appointment.Reason))
+                        {
+                            <div class="border-top pt-2">
+                                <small class="text-muted d-block mb-1"><i class="fas fa-comment-medical me-1"></i>Reason</small>
+                                <p class="mb-0 small text-muted">@(appointment.Reason.Length > 80 ? appointment.Reason.Substring(0, 80) + "..." : appointment.Reason)</p>
+                            </div>
+                        }
+                    </div>
+                    <div class="card-footer bg-transparent border-top p-3">
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Details" asp-route-id="@appointment.Id" class="btn btn-ghost btn-sm">
+                                <i class="fas fa-eye me-1"></i> Details
+                            </a>
+                            @if (appointment.Status == "Scheduled")
+                            {
+                                <form asp-action="Cancel" asp-route-id="@appointment.Id" method="post" 
+                                      onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-ghost btn-sm text-danger">
+                                        <i class="fas fa-times me-1"></i> Cancel
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state py-4">
+                <i class="fas fa-calendar-times"></i>
+                <h5>No Appointments</h5>
+                <p>No appointments in this category</p>
+            </div>
+        </div>
+    </div>
+}
